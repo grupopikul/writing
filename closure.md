@@ -9,7 +9,7 @@ Un **closure** en Python es una función que "recuerda" el entorno o contexto en
 
 Los closures en Python usan variables con un alcance **nonlocal**, lo que permite que una función interna acceda a variables definidas en una función externa.
 
-### **Ejemplo de Closure**
+### **Ejemplo 1 de Closure**
 En este ejemplo, la función interna `sumatoria()` utiliza la variable `suma` que tiene alcance **nonlocal**, accediendo al scope de suma en `sumatoria_de_lista()`:
 
 ```python
@@ -35,6 +35,27 @@ print(f"Esta es mi sumatoria de la lista de números: {resultado_sum}")
 ```
 Suma antes del closure dentro, en el scope de sumatoria_de_lista(): 0
 Esta es mi sumatoria de la lista de números: 10
+```
+
+### **Ejemplo 2 de Closure**
+En este ejemplo, la función interna `agregar_cadena()` utiliza la variable `cadena_sin_espacios` y `texto` que tienen alcance **nonlocal** aunque no se declare, ya que son solo de lectura, así el scope de esas esas variables es de `agregar_texto()`:
+
+```python
+x = "Hola "
+
+def agrega_texto(cadena, texto):
+    cadena_sin_espacios = cadena[:-1]
+    def agregar_cadena():  
+        # No usamos 'nonlocal' porque no se modifican las variables, solo se accesa a su valor
+        return cadena_sin_espacios + " "+ texto + "!"
+    return agregar_cadena()
+
+cadena = agrega_texto(x, "Mundo")
+print(cadena)
+```
+**Resultado:**
+```
+Hola Mundo!
 ```
 
 ---
