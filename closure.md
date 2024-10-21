@@ -1,13 +1,34 @@
+# **Alcance (Scope)**
+En Python existe una regla llamada LEGB, por sus siglas: Local, Enclosing (Envolvente), Global y Built-in (Integrado).
+### **Ejemplo de Alcance**
+```python
+x = "global"
+def local():
+    z = "local"
+    print(f"Imprimir dentro de un alcance {z}")
+
+def envolvente():
+    y = "envolvente"
+    def interno():
+        print(f"Imprimir dentro de un alcance {y} o nonlocal")
+
+print(f"Imprimir dentro de un alcance {x}")
+local()
+envolvente()
+```
+**Resultado:**
+```
+Imprimir dentro de un alcance global
+Imprimir dentro de un alcance local
+Imprimir dentro de un alcance envolvente o nonlocal
+```
+
+Sobre los Integrados, son palabras reservadas del sistema, tales como: `True`, `False`, `None`, `and`, `as`, `assert`, `break`, `class`, `contine`, etc.
 
 # **Closure en Python**
 
 ## **¿Qué es un Closure?**
-Un **closure** en Python es una función que "recuerda" el entorno o contexto en el que fue creada, para esto accede a un alcance (scope) superior. Para entender closures, es importante conocer los tipos de **alcance** (scope) en Python:
-- **Global**: Variables accesibles en todo el script.
-- **Nonlocal**: Variables que se encuentran en un scope superior, pero no son globales.
-- **Local**: Variables accesibles solo dentro de una función.
-
-Los closures en Python usan variables con un alcance **nonlocal**, lo que permite que una función interna acceda a variables definidas en una función externa.
+Un **closure** en Python es una función que "recuerda" el entorno o contexto en el que fue creada, para esto accede a un alcance (scope) superior **nonlocal**.
 
 ### **Ejemplo 1 de Closure**
 En este ejemplo, la función interna `sumatoria()` utiliza la variable `suma` que tiene alcance **nonlocal**, accediendo al scope de suma en `sumatoria_de_lista()`:
