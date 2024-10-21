@@ -28,38 +28,38 @@ Sobre los Integrados, son palabras reservadas del sistema, tales como: `True`, `
 # **Closure en Python**
 
 ## **¿Qué es un Closure?**
-Un **closure** en Python es una función que "recuerda" el entorno o contexto en el que fue creada, para esto accede a un alcance (scope) superior **nonlocal**.
+Un **closure** en Python es una función que "recuerda" el entorno o contexto en el que fue creada, para esto accede a un alcance (scope) superior. El programador puede modificar una variable accediendo directamente a su espacio en memoria con un **nonlocal** o puede solo hacer una lectura del valor de la variable, sin tener que usar esa declaración.
 
 ### **Ejemplo 1 de Closure**
-En este ejemplo, la función interna `sumatoria()` utiliza la variable `suma` que tiene alcance **nonlocal**, accediendo al scope de suma en `sumatoria_de_lista()`:
+En este ejemplo, la función interna `agregar_cadena()` modifica la variable `cadena_sin_espacios` empleando **nonlocal** , así el scope de esa variable es de `agregar_texto()`, sumando un `" "` y el valor de `texto`:
 
 ```python
-lista_numeros = [1, 2, 3, 4]
+x = "Hola "
 
-def sumatoria_de_lista(lista):
-    suma = 0
-    print(f"Suma antes del closure dentro, en el scope de sumatoria_de_lista(): {suma}")
-    
-    def sumatoria():
-        nonlocal suma  # Usamos 'nonlocal' para modificar la variable 'suma' del scope superior de 'sumatoria de lista()'
-        for numero in lista:
-            suma += numero
-        return suma
-    
-    return sumatoria()
+def agrega_texto(cadena, texto):
+    cadena_sin_espacios = cadena[:-1]
+    print(f"Texto antes del closure dentro, en el scope de agrega_texto(): {cadena_sin_espacios}")
 
-resultado_sum = sumatoria_de_lista(lista_numeros)
-print(f"Esta es mi sumatoria de la lista de números: {resultado_sum}")
+    def agregar_cadena():
+        nonlocal cadena_sin_espacios  # Usamos 'nonlocal' para modificar la variable 'cadena_sin_espacios'
+        cadena_sin_espacios = cadena_sin_espacios + " " + texto
+    agregar_cadena()
+
+    return cadena_sin_espacios
+
+
+cadena = agrega_texto(x, "Mundo!")
+print(f"Texto después del closure: {cadena}")
 ```
 
 **Resultado:**
 ```
-Suma antes del closure dentro, en el scope de sumatoria_de_lista(): 0
-Esta es mi sumatoria de la lista de números: 10
+Texto antes del closure dentro, en el scope de agrega_texto(): Hola
+Texto después del closure: Hola Mundo!
 ```
 
 ### **Ejemplo 2 de Closure**
-En este ejemplo, la función interna `agregar_cadena()` utiliza la variable `cadena_sin_espacios` y `texto` que tienen alcance **nonlocal** aunque no se declare, ya que son solo de lectura, así el scope de esas esas variables es de `agregar_texto()`:
+En este ejemplo, la función interna `agregar_cadena()` utiliza la variable `cadena_sin_espacios` y `texto` ya que son solo de lectura:
 
 ```python
 x = "Hola "
@@ -82,7 +82,7 @@ Hola Mundo!
 ---
 
 ## **Excepciones que no requieren `nonlocal`**
-Al ser Python un lenguaje que maneja POO, posee algunas clases nativas las cuales tienen métodos que modifican el valor interno de la variable, pero no accesan a su dirección en memoria (por eso no necesiatan declarar `nonlocal` ni `global`), como por ejemplo los métodos `append()` y `extend()` que son nativos de las listas de Pyhton.
+Al ser Python un lenguaje que maneja POO, posee algunas clases nativas las cuales tienen métodos que modifican el valor interno de la variable, pero no accesan a su dirección en memoria (por eso no necesiatan declarar `nonlocal` ni `global`), por esto no necesitan emplear **nonlocal** para modificar una variable, como por ejemplo los métodos `append()` y `extend()` que son nativos de las listas de Pyhton.
 
 ### **Ejemplo 1: Usando `append()`**
 En este ejemplo, `append()` modifica la lista sin necesidad de declarar `nonlocal`:
