@@ -1,0 +1,20 @@
+uses hatchling for lib
+
+app - basic info (project name, dependencies)
+app + package - authorhsip, build system, project.scripts
+
+lib - basic + build system
+lib-package - same as lib
+
+lib-app - doesn't work, but really should, if you follow a UI Hierachal design:
+
+library, maybe exposed as an API, accessible from CLI, and then perhaps used to construct a GUI.
+
+do both python script.py and python -m script run as __name__=main
+
+`uv run --no-project script.py` to not install project
+
+uv init --script
+tool will do ephemeral stuff
+--no-project will ignore project in run
+but are inline scripts always ephemeral? YES! project always ignored (assuming.., and it is cache)
