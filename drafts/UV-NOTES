@@ -18,3 +18,6 @@ uv init --script
 tool will do ephemeral stuff
 --no-project will ignore project in run
 but are inline scripts always ephemeral? YES! project always ignored (assuming.., and it is cache)
+
+
+lib and app should work
