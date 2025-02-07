@@ -1,0 +1,103 @@
+Python's async/await framework is under heavy development.
+
+Let's define low level:
+
+Generally you're going use "low-level" asyncio functions if you're
+a) doing anything in parallel or b) converting a synchronous architecture into
+an asynchronous one.
+
+Developers will find in ~3.9 that architectures are not yet convenient and require
+careful planning. There are improvements in 3.11: 0-cost try/except, task groups, and
+actual timeouts.
+
+Why are these important for "low-level" projects?
+
+Point One, when I say *task* I mean `asyncio.Task`s and anything *task*-like, that is, a
+branch of code that will eventually be executed by the *task manager* (the loop).
+Python has an `asyncio.Task` object and an `asyncio.Coroutine` object of which there
+are implementation-specific details. If I'm talking about an `asyncio.Task`, I will
+say `asyncio.Task`. If I'm talking about asyncronous code of any flavor, I will say
+*task*.
+
+Point Two, consider that some *tasks* are *orphans*, that is, you create them and they
+are executed and may or may not be `await`ed at all- they could just be posted and
+they're independent of any stack. Futures are not *tasks*, but are *task*-like, they
+are *fufilled* by tasks, and can be `await`ed- they are *awaitables*. `asyncio.Task`,
+`asyncio.Coroutine`, and `*.Future` are all *awaitables*, but only the first two
+are *tasks*. There are several `*.Future` implementations.
+
+Point Three, In `asyncio`, anything `await`ed can also hang if not canceled during
+failure. Anything not cancelled properly when stuff is shutting down will complain.
+**You cannot create and forget about anything awaitable.**
+
+So, on errors:
+
+Normally, you `raise` an error, and that error propagates **up** through a callstack. When
+you use async/await, errors can propagate in several directions:
+
+A. **Up** through *tasks* that are awaiting on the *task* that threw the error. It's not
+   linear! If you're using a *future*, meant for lower-level architectures (see note:
+   when to use futures?), several things might `await` the same *future*. If the
+   *future* throws an exception, several *tasks* now have that exception and will dump
+   their traces. One *future* can be part of several stacks.
+
+   On this point, you need to be careful with futures. When you provide coroutines (
+   `async def`) to your users, you're providing _definitions_. But when you provide
+   futures, it's an _instantiation_. User is 100% responsible for whatever
+   coroutine they instantiate, but if you're going to interact with a future you gave
+   to a user, keep in mind they might have cancelled it, and setting a result on that
+   leads to irrecoverable errors.
+
+B. **Down** through *tasks*: if a *task* is cancelled or timedout (a type of cancel) it
+   will propagate both **up and down**. Even if even if you are linear, unrelated
+   *tasks* that hold references to a task in the middle of a stack can cancel the *task*
+   and all the subtasks will have to be canceled and all the higher *tasks* will be
+   canceled.
+C. Callbacks can be attached to *tasks* which is useful if they are background-tasks
+   (orphans) because `asyncio` expects all `tasks` to do something with their
+   exceptions- but here the exception is received as a value, it's not `raise`ed,
+   it's returned by `.exception()`. These callbacks are also not `async`, so
+   they are not cancelled. But you get errors if you don't handle all exceptions.
+
+We now see that our stacks are no longer actual **stacks** in computer science sense,
+they are graphs. And given that there are orphans, not every *task* is even connected
+to the graph.
+
+When your user uses your library, they are now connected to your mess and any errors
+will propagate strangely to them.
+
+So while you're designing your architecture, you have to make decisions like:
+- What errors should cancel this *task*? What errors can be eaten?
+- What happens if this *task* is cancelled, should I shut down the whole system?
+  Should I fail a _part_ of the system? Task groups can help with this.
+- How will this `task` be cancelled if the whole system is shut down.
+- Is it reasonable put some reasonable timeout on certain tasks? Likely to hang?
+
+For highspeed stuff, putting `try-except` in loops before v3.11 actually had a ~4x
+performance downgrade. ruff's linter complains about it.
+
+If you're posting *tasks* (orphans), and I can think of generally two reasons for that:
+
+Reason 1. The tasks can at least partially occur in parallel (they offload work to
+   some other thread/process/network/machine and await it).
+
+Reason 2. It is a background tasks that runs "forever" (a watchdog, a read_loop on a
+   syncronous interface, some kind of status monitor.)
+
+then those orphan's need to somehow be managed and cancelled. See *Point 3" from the
+beginning. You should not just abandon tasks unless you're okay with unclean and
+catastrophic (freezing) failure during error conditions.
+
+I wonder how all this would have been different if errors were `return`ed not
+`raise`d, but okay...
+
+Note: When to use futures
+
+We use them in two places, there would be more:
+1. When we're parsing messages from a network interface and have to dynamically
+   decide which *task* is fufilled by the result of that parsing. We find the correct
+   future based on a key parsed from the message and resolve it the value.
+2. When we need to create an awaitable and execute it but not necessarily
+   await it immediately. `async` functions don't start executing until they are
+   awaited, AFAIK, but regular functions can start execution and return a future,
+   and the future will be fufilled whenever.
