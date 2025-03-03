@@ -1,3 +1,8 @@
+3.8 is like unusable, and as far as typing info via ruff, yeah
+probably same probably as mypy, it uses the version in pyproject toml?
+or mypy?
+i don't remember how ruff handles versions
+
 Python's async/await framework is under heavy development.
 
 Let's define low level:
