@@ -70,7 +70,34 @@ should make sure of that, and I guess maybe we can block tags that don't have th
 format.
 Also checks on tags.
 
+
 ------------------------
+
+# Packaging, and Versions
+
+## Versions
+
+I want you to use git. Not everyone uses git. If you want to build an tagged release,
+you should be able to without git. If you want to build an intermediate release,
+one that you downloaded from github, better to use git, but maybe we can provide some
+other method. A build hash.
+
+So imagine a release protocol that... writes somewhere a starting versioning and a
+recalculatable hash. Hash of what, the source? Yes, the source dist.
+
+If you build something without git without that hash, the version should come back
+and calculate dirty.
+
+## Packaging
+
+Source, everything is source. SCM is right, because how we build is just as important
+as what we built. The binary is just what you need to run. But the source build
+without configuration files doesn't really make sense, since directing the build is
+part of the source.
+
+
+
+
 
 # old below
 
@@ -124,3 +151,107 @@ what exactly goes on, and I kind of want to resolve that.
 package_data, problems with source, scm-version
 
 versioning python guide
+
+# FINAL THOUGHTS ON VERSIONING AND RELEASING
+
+Context: we're working with setuptools, not hatch or other build backends.
+
+1. Version Generators: `setuptools-git-versioning` (GV) vs `setuptools-scm` (SCM)
+
+  GV: Can change template for how to print version
+    -- GV and SCM have similiar default templates:
+       GV:  {tag}.post{distance}+git.{hash}.dirty (customizable easily)
+       SCM: {tag}.dev{distance}+g{hash}.d{date}
+       Where:
+       - {tag}: git tag, e.g. v1.0.0
+       - {distance}: how many commits beyond last tag we are
+       - {hash}: hash of the last comit
+       - {date}: if the repo is dirty, ie uncommited changes, SCM includes the date
+      Suffixes will only be printed if relevant, so a fresh v1.0.0 tag will show
+      just v1.0.0, not v1.0.0.post0+git.???.dirty.
+  GV: Can set starting version (for when no tag).
+  SCM: impacts what files are packaged as well (see 2a.)
+
+  Neither obeys version = "X", I'm not happy with either behavior without a tag.
+  **DECISION: STATIC VERSIONING AND DEFAULT**.
+
+2. Context about file inclusion
+  a. What files are included
+    Fact 1: Every build creates 1. a wheel (*bdist*) and 2. a tar (*sdist*).
+    The *bdist* is just what is needed to run, where as a *sdist* is whats needed
+    to build from scratch.
+
+    Fact 2: There are two common directory structures:
+      1. "src": /repo_root/src/package_name/...
+      2. "flat": /repo_root/package-name/...
+      Where "..." is all your py files. These we call the "**package directory**".
+      **DECISION: NO MORE FLAT.**
+
+    Fact 3: There is an advanced feature called *namespaces which allows import to
+    "feel" like one package but are actually packaged and installed differently:
+
+    ```python
+    import plotly.kaleido # package 1
+    import plotly.io # package 2
+    # both namespace plotly
+    ```
+
+    Setuptools searches for py files and include some other stuff (pyproject.toml) in
+    both *bdist* and *sdist*. *bdist* files always have to be in the *package
+    directory*, whereas *sdist* searchpaths depend on some settings (more later).
+
+    If namespace is enabled, folders don't need a `__init__.py`, all py files
+    will be included in the *package directory*. **DECISION: NAMESPACE**
+
+    So this leads to two common questions:
+      - How do we add non-python files to the dists? **DECISION: FILE LIST**
+        - package-data or MANIFEST.in if include_package_data=True
+        - If we have a data folder, with data files included, but
+          no __init__.py, setuptools will cry unles namepsace is enabled.
+          **DECISION: DATA __INIT__.py**.
+
+      - How do we control what gets added to the *sdist*?
+        **DECISION: SDIST COMPILING, SRC IS NOT DEV**
+        Some default behaviors:
+          - If we're using a flat *package directory*, setuptools will include all
+            py files from root (ew).
+          - If we're using SCM, all git-track files are include (sometimes good?)
+
+        package_data (like in bdist) can only be used for non-py files inside the
+        *package_directory*. But MANIFEST.in and [tools.setuptools.include] (from
+        pyproject.toml) can be instructed to include files and directories.
+        Supposedly MANIFEST.in is more flexible.
+
+3. What Are My Requirements + DECISIONS
+  The "DECISIONS" are *how* we will achieve the rest.
+  - Build Without git
+    I want to improve fallbacks for automatic git versioning.
+    If there is no tag available, or we are not in a git directory, we should generate
+    the version from file if there is one, or throw an error. If there a version tag
+    set, we should use that version. If we have generated the version from a version
+    file, we should check a hash.
+  - Use Tags
+    Versions will be slightly different if we're coming out of a git directory or not
+    If not in a git directory, and the hashes don't match, we just put a note
+    in the version that things are different than they were when the build was built.
+  - Changelog
+    Pull requests should require the addition to the top of changelog. The merge should
+    always be adding to the top of the changelog. We will have to enforce that.
+  - Release steps
+    Releases should be be kind of automatic. Add the version to the changelog.
+    Changelog should include an sdist hash. We can pull the last version
+    directly from the changelog, so when we're releasing, we should be adding
+    a version title to the changelog. It could even come from the branch name?
+    And the tag would be generated automatically if the tests are passing.
+    Release branches would only make change to the changelog. release/v1.0.0023 tag name.
+    And it should check the merge to make sure it's just the changelog and thats it.
+    It can make other changes to the changelog besides adding a title. Branch
+    name should follow semantic versioning rules.
+
+4. Decisions:
+
+
+After thought:
+
+Config files are abused.
+
