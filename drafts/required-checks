@@ -1,0 +1,28 @@
+# Every PR
+Ruff
+Mypy (strict or not)
+Pytest testing
+Integration testing sometimes
+Pytest coverage
+Language Assesment
+mkdocs, mkdocs changes
+Everything in pre-commit
+.editorconfig is obeyed
+translate checks?
+
+# Releases
+Build-n-Test
+
+# Audits
+Check version release consistent (changelog, releases, conda, pypi)
+Branch consistent
+Default branch ahead
+GHA Checks
+Configuration Consistency
+
+
+# Codes
+
+starting a new python project
+git behavior
+
